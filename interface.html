@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html ng-app="roverApp">
+
+<head>
+	<title>ECE 4534 Interface</title>
+	<script src="jquery.js"></script>
+	<script src="angular.js"></script>
+	<link rel="stylesheet" href="bootstrap.css"></style>
+	<style>
+.container {
+	width: 600px;
+}
+h1, table, th {
+	text-align: center;
+}
+th {
+	font-size: 1.2em;
+}
+td {
+	font-family: monospace;
+}
+button.killswitch {
+	background: red;
+	color: yellow;
+	border: 0px solid red;
+	border-radius: 6px;
+}
+	</style>
+	<script>
+var roverApp = angular.module('roverApp', []);
+roverApp.controller('RoverListCtrl', function ($scope) {
+	$scope.rovers = [
+		{name: "Rover 1", status: "seeking"},
+		{name: "Rover 2", status: "hiding"},
+		{name: "Rover 3", status: "hiding"},
+		{name: "Rover 4", status: "hiding"}
+	];
+});
+	</script>
+</head>
+<body>
+<div class="container">
+	<h1 class="jumbotron">ECE 4534 Interface</h1>
+	<table class="table">
+		<thead>
+		<tr>
+			<th>Rover</th>
+			<th>Status</th>
+			<th>Kill-Switch</th>
+		</tr>
+		</thead>
+		<tbody ng-controller="RoverListCtrl">
+			<tr ng-repeat="rover in rovers">
+				<td>{{ rover.name }}</td>
+				<td ng-class="{info: rover.status == 'seeking'}">{{ rover.status }}</td>
+				<td><button class="killswitch">Emergency Shutoff</button></td>
+			</tr>
+		</tbody>
+	</table>
+</div>
+</body>
+</html>
