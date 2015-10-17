@@ -27,6 +27,13 @@ tcp_lock = threading.Lock()
 unix_clients = set()
 unix_lock = threading.Lock()
 
+# retarded hack because shit is broken
+def slowsendall(sock, data):
+	n = 4
+	for i in range(0, len(data), n):
+		sock.sendall(data[i:i+n])
+		sleep(0.1)
+
 class tcp_pkt_iter:
 	def __init__(self, sock):
 		#self.re = re.compile('[^\xff]*(?:\xff})?\xff{([^\xff]*)\xff}(.*)')
@@ -151,7 +158,7 @@ def broadcast_tcp(msg):
 	with tcp_lock:
 		for s in tcp_clients:
 			try:
-				s.sendall(msg)
+				slowsendall(s, msg)
 			except:
 				tcp_clients.remove(s)
 				s.close()
@@ -160,7 +167,7 @@ def broadcast_unix(msg):
 	with unix_lock:
 		for s in unix_clients:
 		#	try:
-				s.sendall(msg)
+				slowsendall(s, msg)
 		#	except:
 		#		unix_clients.remove(s)
 		#		s.close()
@@ -224,7 +231,7 @@ class ThreadedUnixStreamRequestHandler(SocketServer.BaseRequestHandler):
 		rp = rovers_present()
 		print 'ROVERS PRESENT VVV'
 		print rp
-		self.request.sendall(rp)
+		slowsendall(self.request, rp)
 		for line in iter(self.request.makefile().readline, ''):
 			# XXX maybe catch exceptions here & notify sender?
 			print 'got '+line
@@ -239,13 +246,13 @@ class ThreadedUnixStreamRequestHandler(SocketServer.BaseRequestHandler):
 					try:
 						print 'sending '+msg+' to '+dst_rover[0]+':'+str(dst_rover[1])
 						with tcp_lock: # XXX WTF HALP
-							rover_lookup(dst_rover).sendall(msg)
+							slowsendall(rover_lookup(dst_rover), msg)
 					except IndexError:
 						print 'stale msg for rover at '+dst_rover.host+':'+dst_rover.port
 					except:
 						raise
 			except ValueError:
-				self.request.sendall(json.dumps({'type': 'error', 'reason': 'invalid message'})+'\n')
+				slowsendall(self.request, json.dumps({'type': 'error', 'reason': 'invalid message'})+'\n')
 			except:
 				raise
 		self.on_done()
