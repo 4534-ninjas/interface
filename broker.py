@@ -60,7 +60,8 @@ def tcp_to_unix(msg, sock):
 	x = {'from': peer, 'raw': base64.b64encode(msg)}
 	if msg[0] == 'M':
 		x['type'] = 'msg'
-		(x['e'], x['n']) = struct.unpack('!ii', msg[1:9])
+		(x['e'], x['n']) = struct.unpack('!II', msg[1:9])
+		print 'e: %08x'%x['e']
 		split = re.compile('([^\0]*)\0(.*)', re.MULTILINE|re.DOTALL)
 		m = split.match(msg[9:])
 		x['fmt'] = m.group(1)
@@ -86,7 +87,8 @@ def tcp_to_unix(msg, sock):
 
 	elif msg[0] == 'D':
 		x['type'] = 'dbg_def'
-		(x['e'], x['n'], x['line'], x['enabled']) = struct.unpack('!iii?', msg[1:14])
+		(x['e'], x['n'], x['line'], x['enabled']) = struct.unpack('!III?', msg[1:14])
+		print 'e: %08x'%x['e']
 		m = re.match('([^\0]*)\0([^\0]*)\0([^\0]*)\0', msg[14:])
 		x['file'] = m.group(1)
 		x['fmt'] = m.group(2)
