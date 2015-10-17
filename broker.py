@@ -173,11 +173,16 @@ def rover_lookup(rover):
 	raise IndexError('no such rover')
 
 def rovers_present():
+	rovers = []
 	with tcp_lock:
-		def pack(sock):
-			peer = sock.getpeername()
-			return {'host': peer[0], 'port': peer[1]}
-		rovers = map(pack, tcp_clients)
+		for sock in tcp_clients:
+			try:
+				peer = sock.getpeername()
+				rovers.append({'host': peer[0], 'port': peer[1]})
+			except:
+				# EBADF
+				print 'dead client'
+				pass
 		#print 'rovers present: '+str([s.getpeername() for s in tcp_clients])
 	return json.dumps({'type': 'rover_list', 'rovers': rovers})+'\n'
 
@@ -216,7 +221,10 @@ class ThreadedUnixStreamRequestHandler(SocketServer.BaseRequestHandler):
 		print 'unix connected'
 		with unix_lock:
 			unix_clients.add(self.request)
-		self.request.sendall(rovers_present())
+		rp = rovers_present()
+		print 'ROVERS PRESENT VVV'
+		print rp
+		self.request.sendall(rp)
 		for line in iter(self.request.makefile().readline, ''):
 			# XXX maybe catch exceptions here & notify sender?
 			print 'got '+line
