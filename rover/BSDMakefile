@@ -1,0 +1,7 @@
+CFLAGS= -Wall -g
+LDFLAGS= -lpthread
+PROG= app
+SRCS= app.c because_unix.c debug.c pkt.c queue.c uart.c
+MAN=
+
+.include <bsd.prog.mk>
