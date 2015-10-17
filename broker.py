@@ -248,7 +248,7 @@ class ThreadedUnixStreamRequestHandler(SocketServer.BaseRequestHandler):
 						with tcp_lock: # XXX WTF HALP
 							rover_lookup(dst_rover).sendall(msg)
 					except IndexError:
-						print 'stale msg for rover at '+dst_rover.host+':'+dst_rover.port
+						print 'stale msg for rover at '+dst_rover[0]+':'+str(dst_rover[1])
 					except:
 						raise
 			except ValueError:
