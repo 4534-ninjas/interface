@@ -114,7 +114,7 @@ def tcp_to_unix(msg, sock):
 	elif msg[0] == 'R':
 		x['type'] = 'test_result'
 		try:
-			x['name'], x['result'] = msg[1:].split('\n')
+			x['name'], x['result'] = msg[1:].split(' ')
 		except:
 			return json.dumps({'type':'error', 'reason':'bad test result data format', 'raw':base64.b64encode(msg)})
 	elif msg[0] == 'B':
