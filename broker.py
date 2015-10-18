@@ -122,7 +122,7 @@ def tcp_to_unix(msg, sock):
 		broadcast_tcp_except(sock, msg[1:]+'\n')
 	else:
 		x['type'] = 'unknown'
-	return json.dumps(x)+'\n'
+	return json.dumps(x)
 
 def unix_to_tcp(msg, sock):
 	print 'from(unix) %s: %s' % (sock.getpeername(), msg)
@@ -219,7 +219,7 @@ class ThreadedTCPRequestHandler(SocketServer.BaseRequestHandler):
 		broadcast_rovers_present()
 		for pkt in iter(tcp_pkt_iter(self.request)):
 			print 'got '+pkt
-			broadcast_unix(tcp_to_unix(pkt, self.request))
+			broadcast_unix(tcp_to_unix(pkt, self.request)+'\n')
 		self.on_done()
 
 	def handle_timeout(self):
