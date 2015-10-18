@@ -132,7 +132,7 @@ def unix_to_tcp(msg, sock):
 	elif x['type'] == 'b64':
 		return base64.b64decode(x['msg'])+'\n'
 	elif x['type'] == 'enumerate':
-		return 'DBGS\nCMDS\n'
+		return 'CMDS\nTSTS\nDBGS\n'
 	elif x['type'] == 'cmd':
 		try:
 			return x['op']+' '+x['arg']+'\n'
