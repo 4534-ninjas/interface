@@ -58,7 +58,11 @@ def tcp_to_unix(msg, sock):
 	peer = sock.getpeername()
 	print 'from(tcp) %s: %s' % (peer, msg)
 	x = {'from': peer, 'raw': base64.b64encode(msg)}
-	if msg[0] == 'M':
+
+	if msg[0] == 'PONG':
+		pass
+
+	elif msg[0] == 'M':
 		x['type'] = 'msg'
 		(x['e'], x['n']) = struct.unpack('!II', msg[1:9])
 		print 'e: %08x'%x['e']
@@ -93,6 +97,7 @@ def tcp_to_unix(msg, sock):
 		x['file'] = m.group(1)
 		x['fmt'] = m.group(2)
 		x['sfmt'] = m.group(3)
+
 	elif msg[0] == 'C':
 		x['type'] = 'cmd_def'
 		d = msg[1:].split('\n')
@@ -108,6 +113,7 @@ def tcp_to_unix(msg, sock):
 			x['name'], x['descr'] = msg[1:].split('\n')
 		except:
 			return json.dumps({'type':'error', 'reason':'bad tst descr fmt', 'raw':base64.b64encode(msg)})
+
 	elif msg[0] == 'S':
 		x['type'] = 'status'
 		x['status'] = msg[1:]
@@ -117,11 +123,14 @@ def tcp_to_unix(msg, sock):
 			x['name'], x['result'] = msg[1:].split(' ')
 		except:
 			return json.dumps({'type':'error', 'reason':'bad test result data format', 'raw':base64.b64encode(msg)})
+
 	elif msg[0] == 'B':
 		x['type'] = 'bcast'
 		broadcast_tcp_except(sock, msg[1:]+'\n')
+
 	else:
 		x['type'] = 'unknown'
+
 	return json.dumps(x)
 
 def unix_to_tcp(msg, sock):
