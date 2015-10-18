@@ -108,6 +108,15 @@ def tcp_to_unix(msg, sock):
 			x['name'], x['descr'] = msg[1:].split('\n')
 		except:
 			return json.dumps({'type':'error', 'reason':'bad tst descr fmt', 'raw':base64.b64encode(msg)})
+	elif msg[0] == 'S':
+		x['type'] = 'status'
+		x['status'] = msg[1:]
+	elif msg[0] == 'R':
+		x['type'] = 'test_result'
+		try:
+			x['name'], x['result'] = msg[1:].split('\n')
+		except:
+			return json.dumps({'type':'error', 'reason':'bad test result data format', 'raw':base64.b64encode(msg)})
 	elif msg[0] == 'B':
 		x['type'] = 'bcast'
 		broadcast_tcp_except(sock, msg[1:]+'\n')
