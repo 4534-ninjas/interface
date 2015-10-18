@@ -59,8 +59,8 @@ def tcp_to_unix(msg, sock):
 	print 'from(tcp) %s: %s' % (peer, msg)
 	x = {'from': peer, 'raw': base64.b64encode(msg)}
 
-	if msg[0] == 'PONG':
-		pass
+	if msg == 'PONG':
+		return None
 
 	elif msg[0] == 'M':
 		x['type'] = 'msg'
@@ -228,7 +228,9 @@ class ThreadedTCPRequestHandler(SocketServer.BaseRequestHandler):
 		broadcast_rovers_present()
 		for pkt in iter(tcp_pkt_iter(self.request)):
 			print 'got '+pkt
-			broadcast_unix(tcp_to_unix(pkt, self.request)+'\n')
+			json = tcp_to_unix(pkt, self.request)
+			if json is not None:
+				broadcast_unix(json+'\n')
 		self.on_done()
 
 	def handle_timeout(self):
