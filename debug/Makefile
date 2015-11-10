@@ -1,5 +1,5 @@
 CFLAGS=-Wall
-example: example.o debug.o
+example: example.o debug.o pkt.o
 
 test_pkt: pkt.c
 	$(CC) -DTEST_PKT -o $@ $<

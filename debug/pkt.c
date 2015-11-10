@@ -1,13 +1,32 @@
 #include <alloca.h>
 #include <assert.h>
+#include <err.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
+static void *
+xmalloc(size_t n)
+{
+	void *x = malloc(n);
+	if (x == NULL)
+		err(1, "malloc");
+	return x;
+}
+
+static void *
+xrealloc(void *p, size_t n)
+{
+	void *x = realloc(p, n);
+	if (x == NULL)
+		err(1, "realloc");
+	return x;
+}
+
 void
-send_pkt(char *buf, size_t len)
+send_pkt(const char *buf, size_t len)
 {
 	char *p, *dst;
 	size_t i;
@@ -28,7 +47,7 @@ send_pkt(char *buf, size_t len)
 		}
 	}
 	*p++ = '\xff'; *p++ = '}';
-	(void)write(1, buf, p - buf);
+	(void)write(1, dst, p - dst);
 }
 
 static char *
@@ -61,35 +80,71 @@ int main() {
 #endif
 
 static int
-extract_pkt(char *buf, size_t buf_len, char **pkt, size_t *pkt_len)
+extract_pkt(char *buf, size_t *buf_len, char **pkt, size_t *pkt_len)
 {
 	char *start, *end;
-	if ((start = find("\xff{", 2, buf, buf_len)) == NULL)
+	if ((start = find("\xff{", 2, buf, *buf_len)) == NULL)
 		return -1;
 	start += 2;
-	if ((end = find("\xff}", 2, start, buf_len - (start - buf))) == NULL)
+	if ((end = find("\xff}", 2, start, *buf_len - (start - buf))) == NULL)
 		return -1;
 	*pkt_len = end - start;
-	if ((*pkt = malloc(*pkt_len)) == NULL)
-		return -1;
+	*pkt = xmalloc(*pkt_len);
 	memcpy(*pkt, start, *pkt_len);
+
+	// slide remaining data over
+	*buf_len -= (end+2) - buf;
+	memmove(buf, end+2, *buf_len);
 	return 0;
 }
 
 #ifdef TEST_PKT
 int main() {
-	char buf[] = "as\xff}df\xff{foo\xff}bar";
+	char buf[] = "as\xff}df\xff{foo\xff}barwat";
 	char *pkt;
-	size_t len;
-	assert(extract_pkt(buf, strlen(buf), &pkt, &len) == 0);
-	assert(pkt != NULL);
-	assert(len == 3);
-	assert(memcmp(pkt, "foo", len) == 0);
+	size_t buf_len = strlen(buf), pkt_len;
+	assert(extract_pkt(buf, &buf_len, &pkt, &pkt_len) == 0);
+	assert(buf_len == 6);
+	assert(memcmp(buf, "barwat", buf_len) == 0);
+	assert(pkt_len == 3);
+	assert(memcmp(pkt, "foo", pkt_len) == 0);
 }
 #endif
 
-void
+// {m,re}alloc()ing size+1 since {m,re}alloc(0) not consistant
+
+static int
+read_more(char **big_buf, size_t *big_len)
+{
+	char buf[1024];
+	ssize_t len = read(0, buf, sizeof(buf));
+	if (len < 0)
+		err(1, "read");
+	if (len == 0)
+		return -1;
+	*big_len += len;
+	*big_buf = xrealloc(*big_buf, *big_len + 1);
+	memcpy(&(*big_buf)[*big_len - len], buf, len);
+	return 0;
+}
+
+int
 recv_pkt(char **buf, size_t *len)
 {
+	static char *excess;
+	static size_t excess_len;
+
 	// *super* inefficient
+
+	if (excess == NULL) {
+		excess = xmalloc(1);
+		if (read_more(&excess, &excess_len) == -1)
+			return -1;
+	}
+
+	while (extract_pkt(excess, &excess_len, buf, len) == -1)
+		if (read_more(&excess, &excess_len) == -1)
+			return -1;
+
+	return 0;
 }
