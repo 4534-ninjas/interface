@@ -164,7 +164,7 @@ __debug(struct debug_entry *e, const char *file, long line, const char *fmt, ...
 		p += sfmt_len;
 		int d; double f; char *s; size_t len;
 		const char *fmtp = e->simple_fmt;
-		while (*fmt) {
+		while (*fmtp) {
 			switch (*fmtp++) {
 			case 'f':
 				f = htonl(va_arg(ap, double));
