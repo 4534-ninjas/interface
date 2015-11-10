@@ -122,21 +122,24 @@ def broadcast_unix(msg):
 				unix_clients.remove(s)
 				s.close()
 
-def update_rovers_present():
+def rovers_present():
 	with tcp_lock:
 		def pack(sock):
 			peer = sock.getpeername()
 			return {'host': peer[0], 'port': peer[1]}
 		rovers = map(pack, tcp_clients)
 		#print 'rovers present: '+str([s.getpeername() for s in tcp_clients])
-		broadcast_unix(json.dumps({'type': 'rover_list', 'rovers': rovers})+'\n')
+	return json.dumps({'type': 'rover_list', 'rovers': rovers})+'\n'
+
+def broadcast_rovers_present():
+	broadcast_unix(rovers_present())
 
 class ThreadedTCPRequestHandler(SocketServer.BaseRequestHandler):
 	def handle(self):
 		print 'tcp connected'
 		with tcp_lock:
 			tcp_clients.add(self.request)
-		update_rovers_present()
+		broadcast_rovers_present()
 		for pkt in iter(tcp_pkt_iter(self.request)):
 			broadcast_unix(tcp_to_unix(pkt, self.request))
 		self.on_done()
@@ -157,7 +160,7 @@ class ThreadedTCPRequestHandler(SocketServer.BaseRequestHandler):
 				tcp_clients.remove(self.request)
 			except:
 				pass
-		update_rovers_present()
+		broadcast_rovers_present()
 		print 'tcp disconnected'
 
 class ThreadedTCPServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
@@ -168,6 +171,7 @@ class ThreadedUnixStreamRequestHandler(SocketServer.BaseRequestHandler):
 		print 'unix connected'
 		with unix_lock:
 			unix_clients.add(self.request)
+		self.request.sendall(rovers_present())
 		for line in iter(self.request.makefile().readline, ''):
 			# XXX maybe catch exceptions here & notify sender?
 			try:
