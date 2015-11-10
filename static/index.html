@@ -6,15 +6,13 @@
 	<script src="jquery.js"></script>
 	<script src="angular.js"></script>
 	<script src="ui-bootstrap.js"></script>
+	<script src="smoothie.js"></script>
 	<link rel="stylesheet" href="bootstrap.css"></style>
 	<style>
 /* for ui-bootstrap */
 .nav, .pagination, .carousel, .panel-title a { cursor: pointer; }
 
 /* local */
-.container {
-	width: 600px;
-}
 h1, table, th {
 	text-align: center;
 }
@@ -32,28 +30,120 @@ button.killswitch {
 }
 	</style>
 	<script>
+var xxx;
 var roverApp = angular.module('roverApp', ['ui.bootstrap']);
 roverApp.controller('SupervisoryCtrl', function ($scope) {
-	$scope.rovers = [
-		{name: "Rover 1", status: "seeking"},
-		{name: "Rover 2", status: "hiding"},
-		{name: "Rover 3", status: "hiding"},
-		{name: "Rover 4", status: "hiding"}
-	];
+	$scope.rover_hiwat = 0;
+	$scope.rovers = {
+	};
+xxx=$scope;
+
+	$scope.toggle = function(def) {
+		// XXX make this per-rover
+		console.log(''+def.e+' toggled '+def.enabled);
+		ws.send(JSON.stringify({'type':(def.enabled?'enable':'disable'), 'e':def.e}));
+	}
+
+	var ws = new WebSocket(window.location.origin.replace('http','ws')+'/rovers');
+	$scope.sock = ws;
+	ws.onopen = function(e) {
+		console.log('connected');
+		ws.send(JSON.stringify({'type':'raw', 'raw':btoa('?')}));
+	}
+	ws.onclose = function(e) { console.warn('connection failed'); }
+	ws.onerror = function(e) { console.warn('connection error: '+e.data); }
+	ws.onmessage = function(e) {
+		console.log(e.data);
+		var msg = JSON.parse(e.data);
+		$scope.$apply(function() {
+			switch (msg.type) {
+			case 'rover_list':
+				msg.rovers.forEach(function(r) {
+					var k = r.host+':'+r.port;
+					if (!$scope.rovers[k]) {
+						$scope.rover_hiwat++;
+						$scope.rovers[k] = {
+							name: 'Rover '+$scope.rover_hiwat,
+							host: r.host,
+							port: r.port,
+							defs: {},
+							msgs: {},
+						};
+					}
+				});
+				break;
+			case 'def':
+				var r = $scope.rovers[msg.from[0]+':'+msg.from[1]];
+				r.defs[msg.e] = msg;
+				r.defs[msg.e].vals = {};
+				msg.sfmt.split('').forEach(function(my_type, i) {
+					var x = {
+						t: my_type,
+						ts: new TimeSeries(),
+						chart: new SmoothieChart(),
+					};
+					x.chart.addTimeSeries(x.ts, {strokeStyle:'red', lineWidth:4});
+					r.defs[msg.e].vals[i] = x;
+				});
+				break;
+			case 'msg':
+				var r = $scope.rovers[msg.from[0]+':'+msg.from[1]];
+				if (r.msgs[msg.e] == undefined) {
+					r.msgs[msg.e] = [];
+					msg.args.forEach(function(arg, i) {
+						var elem = document.getElementById(r.host+'_'+r.port+'_'+msg.e+'_'+i);
+						r.defs[msg.e].vals[i].chart.streamTo(elem, 1000);
+					});
+				}
+				r.msgs[msg.e].push(msg);
+				msg.args.forEach(function(arg, i) {
+        	r.defs[msg.e].vals[i].ts.append(new Date().getTime(), arg);
+				});
+
+				break;
+			}
+		});
+	}
 });
 
-var ws = WebSocket('/rovers');
 	</script>
 </head>
 <body>
 
 <div class="container" ng-controller="SupervisoryCtrl">
-  <h1 class="jumbotron">Rover Supervisory Interface</h1>
-  <uib-tabset>
-    <uib-tab ng-repeat="rover in rovers" heading="{{rover.name}}">
-      {{rover.name}}
-    </uib-tab>
-  </uib-tabset>
+	<h1 class="jumbotron">Rover Supervisory Interface</h1>
+	<uib-tabset>
+		<uib-tab ng-repeat="rover in rovers" heading="{{rover.name}}">
+			<h1>Message types</h1>
+			<table class="table"><thead>
+				<tr>
+					<th>unique ID</th>
+					<th>file:line</th>
+					<th>format string</th>
+					<th>data types</th>
+					<th>message count</th>
+					<th>enabled</th>
+				</tr>
+			</thead><tbody>
+				<tr ng-repeat="(e, def) in rover.defs">
+					<td>{{def.e}}</td>
+					<td>{{def.file}}:{{def.line}}</td>
+					<td>{{def.fmt}}</td>
+					<td>{{def.sfmt}}</td>
+					<td>{{def.n}}</td>
+					<td><input type="checkbox" ng-model="def.enabled" ng-change="toggle(def)"></input></td>
+				</tr>
+			</tbody></table>
+
+			<hr />
+
+			<h1>Message Values</h1>
+			<div ng-repeat="(e, def) in rover.defs">
+				<h2>{{def.fmt}}</h1>
+				<canvas ng-repeat="(i, arg) in def.vals" id="{{rover.host}}_{{rover.port}}_{{e}}_{{i}}" width="600" height="100"></canvas>
+			</div>
+		</uib-tab>
+	</uib-tabset>
 </div>
 
 </div>
