@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <unistd.h>
 
 #include "debug.h"
@@ -27,6 +28,8 @@ main()
 		printf("re-encoding: ");fflush(stdout);
 		send_pkt(buf, len);
 		printf("\n");
+
+		free(buf);
 	}
 
 	return 0;
