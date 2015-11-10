@@ -1,5 +1,7 @@
 #!/bin/sh
 
+make
+
 d='rover_tests'
 for x in "$d"/in_*; do
 	i=$(echo "$x" | sed 's/.*_//')
