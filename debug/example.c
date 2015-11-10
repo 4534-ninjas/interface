@@ -20,13 +20,13 @@ main()
 	do_foobar();
 	debug_dump_all();
 
-	while (recv_pkt(&buf, &len) != -1) {
+	while (recv_pkt(STDIN_FILENO, &buf, &len) != -1) {
 		printf("got packet: ");fflush(stdout);
-		write(1, buf, len);
+		write(STDOUT_FILENO, buf, len);
 		printf("\n");
 
 		printf("re-encoding: ");fflush(stdout);
-		send_pkt(buf, len);
+		send_pkt(STDOUT_FILENO, buf, len);
 		printf("\n");
 
 		free(buf);

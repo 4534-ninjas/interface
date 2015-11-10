@@ -49,7 +49,7 @@ unescape_inplace(char *buf, size_t *len)
 }
 
 void
-send_pkt(const char *buf, size_t len)
+send_pkt(int fd, const char *buf, size_t len)
 {
 	char *p, *dst;
 	size_t i;
@@ -70,7 +70,7 @@ send_pkt(const char *buf, size_t len)
 		}
 	}
 	*p++ = '\xff'; *p++ = '}';
-	(void)write(1, dst, p - dst);
+	(void)write(fd, dst, p - dst);
 }
 
 static char *
@@ -137,10 +137,10 @@ int main() {
 // {m,re}alloc()ing size+1 since {m,re}alloc(0) not consistant
 
 static int
-read_more(char **big_buf, size_t *big_len)
+read_more(int fd, char **big_buf, size_t *big_len)
 {
 	char buf[1024];
-	ssize_t len = read(0, buf, sizeof(buf));
+	ssize_t len = read(fd, buf, sizeof(buf));
 	if (len < 0)
 		err(1, "read");
 	if (len == 0)
@@ -152,7 +152,7 @@ read_more(char **big_buf, size_t *big_len)
 }
 
 int
-recv_pkt(char **buf, size_t *len)
+recv_pkt(int fd, char **buf, size_t *len)
 {
 	static char *excess;
 	static size_t excess_len;
@@ -161,12 +161,12 @@ recv_pkt(char **buf, size_t *len)
 
 	if (excess == NULL) {
 		excess = xmalloc(1);
-		if (read_more(&excess, &excess_len) == -1)
+		if (read_more(fd, &excess, &excess_len) == -1)
 			return -1;
 	}
 
 	while (extract_pkt(excess, &excess_len, buf, len) == -1)
-		if (read_more(&excess, &excess_len) == -1)
+		if (read_more(fd, &excess, &excess_len) == -1)
 			return -1;
 
 	unescape_inplace(*buf, len);
