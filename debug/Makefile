@@ -1,4 +1,5 @@
 CFLAGS=-Wall
+LDFLAGS=-pthread
 
 .PHONY: all test clean
 
@@ -19,4 +20,4 @@ test: test_pkt test_find
 	./test_find
 
 clean:
-	rm -f test_pkt test_find example rover *.o
+	rm -f test_pkt test_find example rover core *.o
