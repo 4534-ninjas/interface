@@ -101,24 +101,24 @@ __debug(struct debug_entry *e, const char *file, long line, const char *fmt, ...
 	if (e->enabled) {
 #ifdef PKT_DEBUG
 		va_list ap;
+		va_start(ap, fmt);
 		struct vals {
 			uint8_t type;
 			uint32_t e;
 			uint32_t count;
 		} __attribute__((__packed__));
-		size_t buf_len = sizeof(struct vals)+vfmtlen(e->simple_fmt, ap);
+		size_t sfmt_len = strlen(e->simple_fmt) + 1;
+		size_t buf_len = sizeof(struct vals) + sfmt_len + vfmtlen(e->simple_fmt, ap);
 		char *buf = alloca(buf_len);
 		struct vals *v = (struct vals *)buf;
 		v->type = 'M'; // `Message` msg type.
 		v->e = htonl((uint32_t)(intptr_t)e);
 		v->count = htonl((uint32_t)e->count);
 		char *p = buf + sizeof(struct vals);
-		int d;
-		double f;
-		char *s;
-		size_t len;
+		memcpy(p, e->simple_fmt, sfmt_len);
+		p += sfmt_len;
+		int d; double f; char *s; size_t len;
 		const char *fmtp = e->simple_fmt;
-		va_start(ap, fmt);
 		while (*fmt) {
 			switch (*fmtp++) {
 			case 'f':
