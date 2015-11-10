@@ -10,14 +10,23 @@
 #include "pkt.h"
 
 void *
-do_foobar(void *x __attribute__((__unused__)))
+loop(void *x __attribute__((__unused__)))
 {
-	int a = 1000;
-	int b = 500;
+	int a = 0;
+	int b = 1000;
+	int c = 500;
 	for (;;) {
-		a += random() % 10 - 5;
+		debug("Internal logic signals: %d, %d, %d",
+			random() & 1, random() & 1, random() & 1);
+
+		a += random() % 3 + 8;
+		a %= 50;
+		debug("Sensor reporting %d (mm)", a);
+
 		b += random() % 10 - 5;
-		debug("thing at (%d,%d)", a, b);
+		c += random() % 10 - 5;
+		debug("Encoders: left=%d right=%d (ticks)", b, c);
+
 		sleep(1);
 	}
 }
@@ -28,8 +37,10 @@ main()
 	char *buf;
 	size_t len;
 
-	pthread_t foobar_td;
-	pthread_create(&foobar_td, NULL, do_foobar, NULL);
+	srandom(0);
+
+	pthread_t td;
+	pthread_create(&td, NULL, loop, NULL);
 
 	while (recv_pkt(STDIN_FILENO, &buf, &len) != -1) {
 fprintf(stderr, "got %c\n", buf[0]);
