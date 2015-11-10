@@ -52,27 +52,53 @@ class tcp_pkt_iter:
 
 def tcp_to_unix(msg, sock):
 	peer = sock.getpeername()
-	print 'from %s: %s' % (peer, msg)
+	print 'from(tcp) %s: %s' % (peer, msg)
 	x = {'from': peer, 'raw': base64.b64encode(msg)}
-	if msg[0] == 'D':
-		x['type'] = 'def'
-	elif msg[0] == 'M':
+	if msg[0] == 'M':
 		x['type'] = 'msg'
+		(x['e'], x['n']) = struct.unpack('!ii', msg[1:9])
+		split = re.compile('([^\0]*)\0(.*)')
+		m = split.match(msg[9:])
+		x['fmt'] = m.group(1)
+		r = m.group(2)
+		a = []
+		for fmt in x['fmt']:
+			if fmt == 'd':
+				a.append(struct.unpack('!i', r[0:4])[0])
+				r = r[4:]
+			elif fmt == 'f':
+				a.append(struct.unpack('!d', r[0:8])[0])
+				r = r[8:]
+			elif fmt == 's':
+				m = split.match(r)
+				a.append(m.group(1))
+				r = m.group(2)
+			else:
+				raise TypeError('unknown args')
+		x['args'] = a
+
+	elif msg[0] == 'D':
+		x['type'] = 'def'
+		(x['e'], x['n'], x['line'], x['enabled']) = struct.unpack('!iii?', msg[1:14])
+		m = re.match('([^\0]*)\0([^\0]*)\0([^\0]*)\0', msg[14:])
+		x['file'] = m.group(1)
+		x['fmt'] = m.group(2)
+		x['sfmt'] = m.group(3)
 	else:
 		x['type'] = 'unknown'
 	return json.dumps(x)+'\n'
 
 def unix_to_tcp(msg, sock):
-	print 'from %s: %s' % (sock.getpeername(), msg)
+	print 'from(unix) %s: %s' % (sock.getpeername(), msg)
 	x = json.loads(msg)
 	if x['type'] == 'raw':
 		p = base64.b64decode(x['raw'])
 	elif x['type'] == 'enumerate':
 		p = '?'
 	elif x['type'] == 'enable':
-		p = '+'+'XXX'
+		p = '+'+struct.pack('!i?', x['e'], True)
 	elif x['type'] == 'disable':
-		p = '-'+'XXX'
+		p = '-'+struct.pack('!i?', x['e'], False)
 	else:
 		# XXX better way to handle this?
 		raise ValueError()
