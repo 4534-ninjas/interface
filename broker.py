@@ -29,7 +29,8 @@ unix_lock = threading.Lock()
 
 class tcp_pkt_iter:
 	def __init__(self, sock):
-		self.re = re.compile(r'[^\xff]*(?:\xff})?\xff{([^\xff]*)\xff}(.*)')
+		#self.re = re.compile('[^\xff]*(?:\xff})?\xff{([^\xff]*)\xff}(.*)')
+		self.re = re.compile('.*?\xff{([^\xff]*)\xff}(.*)')
 		#self.re = re.compile(r'([^\n]*)\n(.*)')
 		self.sock = sock
 		self.buf = ""
@@ -39,6 +40,8 @@ class tcp_pkt_iter:
 
 	def getmore(self):
 		data = self.sock.recv(4096)
+		print 'got: '+data.encode('string-escape')
+		print 'buf: '+self.buf.encode('string-escape')
 		if not data:
 			raise StopIteration()
 		self.buf += data
@@ -51,6 +54,7 @@ class tcp_pkt_iter:
 		return match.group(1)
 
 def tcp_to_unix(msg, sock):
+	msg = msg.replace('\\\\', '\\').replace('\\x', '\xff')
 	peer = sock.getpeername()
 	print 'from(tcp) %s: %s' % (peer, msg)
 	x = {'from': peer, 'raw': base64.b64encode(msg)}
@@ -62,19 +66,22 @@ def tcp_to_unix(msg, sock):
 		x['fmt'] = m.group(1)
 		r = m.group(2)
 		a = []
-		for fmt in x['fmt']:
-			if fmt == 'd':
-				a.append(struct.unpack('!i', r[0:4])[0])
-				r = r[4:]
-			elif fmt == 'f':
-				a.append(struct.unpack('!d', r[0:8])[0])
-				r = r[8:]
-			elif fmt == 's':
-				m = split.match(r)
-				a.append(m.group(1))
-				r = m.group(2)
-			else:
-				raise TypeError('unknown args')
+		try:
+			for fmt in x['fmt']:
+				if fmt == 'd':
+					a.append(struct.unpack('!i', r[0:4])[0])
+					r = r[4:]
+				elif fmt == 'f':
+					a.append(struct.unpack('!d', r[0:8])[0])
+					r = r[8:]
+				elif fmt == 's':
+					m = split.match(r)
+					a.append(m.group(1))
+					r = m.group(2)
+				else:
+					raise TypeError('unknown args')
+		except:
+			return json.dumps({'type':'error', 'reason':'tcp unpacking', 'raw':base64.b64encode(msg)})+'\n'
 		x['args'] = a
 
 	elif msg[0] == 'D':
@@ -101,7 +108,7 @@ def unix_to_tcp(msg, sock):
 		p = '-'+struct.pack('!i?', x['e'], False)
 	else:
 		# XXX better way to handle this?
-		raise ValueError()
+		raise ValueError('bad msg format')
 	return '\xff{'+p.replace('\\','\\\\').replace('\xff','\\x')+'\xff}'
 
 def broadcast_tcp(msg):
@@ -116,11 +123,11 @@ def broadcast_tcp(msg):
 def broadcast_unix(msg):
 	with unix_lock:
 		for s in unix_clients:
-			try:
+		#	try:
 				s.sendall(msg)
-			except:
-				unix_clients.remove(s)
-				s.close()
+		#	except:
+		#		unix_clients.remove(s)
+		#		s.close()
 
 def rovers_present():
 	with tcp_lock:
@@ -151,15 +158,9 @@ class ThreadedTCPRequestHandler(SocketServer.BaseRequestHandler):
 		self.on_done()
 
 	def on_done(self):
-		try:
-			self.request.close()
-		except:
-			pass
+		self.request.close()
 		with tcp_lock:
-			try:
-				tcp_clients.remove(self.request)
-			except:
-				pass
+			tcp_clients.remove(self.request)
 		broadcast_rovers_present()
 		print 'tcp disconnected'
 
@@ -177,10 +178,7 @@ class ThreadedUnixStreamRequestHandler(SocketServer.BaseRequestHandler):
 			try:
 				broadcast_tcp(unix_to_tcp(line, self.request))
 			except ValueError:
-				try:
-					self.request.sendall(json.dumps({'type': 'error', 'reason': 'invalid message'})+'\n')
-				except:
-					break
+				self.request.sendall(json.dumps({'type': 'error', 'reason': 'invalid message'})+'\n')
 		self.on_done()
 
 	def handle_timeout(self):
