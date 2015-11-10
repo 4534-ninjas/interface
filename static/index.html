@@ -113,7 +113,7 @@ xxx=$scope;
 <div class="container" ng-controller="SupervisoryCtrl">
 	<h1 class="jumbotron">Rover Supervisory Interface</h1>
 	<uib-tabset>
-		<uib-tab ng-repeat="rover in rovers" heading="{{rover.name}}">
+		<uib-tab ng-repeat="rover in rovers" heading="{{rover.name}} ({{rover.host}}:{{rover.port}})">
 			<h1>Message types</h1>
 			<table class="table"><thead>
 				<tr>
