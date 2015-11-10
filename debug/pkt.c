@@ -26,6 +26,29 @@ xrealloc(void *p, size_t n)
 }
 
 void
+unescape_inplace(char *buf, size_t *len)
+{
+	size_t si, di;
+	for (si = di = 0; si < *len; si++, di++) {
+		if (buf[si] == '\\') {
+			if (buf[si+1] == '\\') {
+				si++;
+				buf[di] = '\\';
+			} else if (buf[si+1] == 'x') {
+				si++;
+				buf[di] = '\xff';
+			} else {
+				// XXX illegal encoding
+				// we just drop the backslash
+			}
+		} else {
+			buf[di] = buf[si];
+		}
+	}
+	*len = di;
+}
+
+void
 send_pkt(const char *buf, size_t len)
 {
 	char *p, *dst;
@@ -146,5 +169,6 @@ recv_pkt(char **buf, size_t *len)
 		if (read_more(&excess, &excess_len) == -1)
 			return -1;
 
+	unescape_inplace(*buf, len);
 	return 0;
 }

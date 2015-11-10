@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <unistd.h>
 
 #include "debug.h"
 #include "pkt.h"
@@ -20,6 +21,10 @@ main()
 
 	while (recv_pkt(&buf, &len) != -1) {
 		printf("got packet: ");fflush(stdout);
+		write(1, buf, len);
+		printf("\n");
+
+		printf("re-encoding: ");fflush(stdout);
 		send_pkt(buf, len);
 		printf("\n");
 	}
