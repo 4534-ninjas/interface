@@ -29,8 +29,8 @@ unix_lock = threading.Lock()
 
 class tcp_pkt_iter:
 	def __init__(self, sock):
-		#self.re = re.compile(r'[^\xff]*(?:\xff})?\xff{([^\xff]*)\xff}(.*)')
-		self.re = re.compile(r'([^\n]*)\n(.*)')
+		self.re = re.compile(r'[^\xff]*(?:\xff})?\xff{([^\xff]*)\xff}(.*)')
+		#self.re = re.compile(r'([^\n]*)\n(.*)')
 		self.sock = sock
 		self.buf = ""
 
@@ -66,16 +66,17 @@ def unix_to_tcp(msg, sock):
 	print 'from %s: %s' % (sock.getpeername(), msg)
 	x = json.loads(msg)
 	if x['type'] == 'raw':
-		return base64.b64decode(x['raw'])
+		p = base64.b64decode(x['raw'])
 	elif x['type'] == 'enumerate':
-		return '?'
+		p = '?'
 	elif x['type'] == 'enable':
-		return '+'+'XXX'
+		p = '+'+'XXX'
 	elif x['type'] == 'disable':
-		return '-'+'XXX'
+		p = '-'+'XXX'
 	else:
 		# XXX better way to handle this?
 		raise ValueError()
+	return '\xff{'+p.replace('\\','\\\\').replace('\xff','\\x')+'\xff}'
 
 def broadcast_tcp(msg):
 	with tcp_lock:

@@ -1,16 +1,18 @@
 #include <stddef.h>
+#include <stdint.h>
 
 struct debug_entry {
 	const char *file;
 	long line;
 	unsigned long count;
 	const char *fmt;
+	const char *simple_fmt;
 	int enabled;
 	struct debug_entry *next;
 };
 
 void debug_dump_all(void);
-int debug_set_enabled(size_t, int);
+int debug_set_enabled(uint32_t, int);
 
 void __debug(struct debug_entry *, const char *, long, const char *, ...);
 
