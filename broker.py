@@ -10,6 +10,7 @@ import SocketServer
 import threading
 import re
 import struct
+import base64
 
 unix_addr = 'sock'
 tcp_addr = ('0.0.0.0', 4321)
@@ -51,30 +52,48 @@ class tcp_pkt_iter:
 
 def tcp_to_unix(msg, sock):
 	peer = sock.getpeername()
-	print 'from {}: {}' % (peer, msg)
-	x = {'from': peer, 'raw': msg}
-	if msg[0] == '\x01':
+	print 'from %s: %s' % (peer, msg)
+	x = {'from': peer, 'raw': base64.b64encode(msg)}
+	if msg[0] == 'D':
 		x['type'] = 'def'
-	elif msg[0] == '\x02':
+	elif msg[0] == 'M':
 		x['type'] = 'msg'
 	else:
 		x['type'] = 'unknown'
-	return json.dumps(x)
+	return json.dumps(x)+'\n'
 
 def unix_to_tcp(msg, sock):
-	print 'from {}: {}' % (sock.getpeername(), msg)
+	print 'from %s: %s' % (sock.getpeername(), msg)
 	x = json.loads(msg)
-	return x['raw']
+	if x['type'] == 'raw':
+		return base64.b64decode(x['raw'])
+	elif x['type'] == 'enumerate':
+		return '?'
+	elif x['type'] == 'enable':
+		return '+'+'XXX'
+	elif x['type'] == 'disable':
+		return '-'+'XXX'
+	else:
+		# XXX better way to handle this?
+		raise ValueError()
 
 def broadcast_tcp(msg):
 	with tcp_lock:
 		for s in tcp_clients:
-			s.sendall(msg)
+			try:
+				s.sendall(msg)
+			except:
+				tcp_clients.remove(s)
+				s.close()
 
 def broadcast_unix(msg):
 	with unix_lock:
 		for s in unix_clients:
-			s.sendall(msg)
+			try:
+				s.sendall(msg)
+			except:
+				unix_clients.remove(s)
+				s.close()
 
 def update_rovers_present():
 	with tcp_lock:
@@ -82,8 +101,8 @@ def update_rovers_present():
 			peer = sock.getpeername()
 			return {'host': peer[0], 'port': peer[1]}
 		rovers = map(pack, tcp_clients)
-		print 'rovers present: '+str([s.getpeername() for s in tcp_clients])
-		broadcast_unix(json.dumps({'type': 'rover_list', 'rovers': rovers}))
+		#print 'rovers present: '+str([s.getpeername() for s in tcp_clients])
+		broadcast_unix(json.dumps({'type': 'rover_list', 'rovers': rovers})+'\n')
 
 class ThreadedTCPRequestHandler(SocketServer.BaseRequestHandler):
 	def handle(self):
@@ -98,12 +117,19 @@ class ThreadedTCPRequestHandler(SocketServer.BaseRequestHandler):
 	def handle_timeout(self):
 		self.on_done()
 
-	def handle_timeout(self):
+	def handle_error(self):
 		self.on_done()
 
 	def on_done(self):
+		try:
+			self.request.close()
+		except:
+			pass
 		with tcp_lock:
-			tcp_clients.remove(self.request)
+			try:
+				tcp_clients.remove(self.request)
+			except:
+				pass
 		update_rovers_present()
 		print 'tcp disconnected'
 
@@ -116,10 +142,32 @@ class ThreadedUnixStreamRequestHandler(SocketServer.BaseRequestHandler):
 		with unix_lock:
 			unix_clients.add(self.request)
 		for line in iter(self.request.makefile().readline, ''):
-			# maybe catch exceptions here & notify sender
-			broadcast_tcp(unix_to_tcp(line, self.request))
+			# XXX maybe catch exceptions here & notify sender?
+			try:
+				broadcast_tcp(unix_to_tcp(line, self.request))
+			except ValueError:
+				try:
+					self.request.sendall(json.dumps({'type': 'error', 'reason': 'invalid message'})+'\n')
+				except:
+					break
+		self.on_done()
+
+	def handle_timeout(self):
+		self.on_done()
+
+	def handle_error(self):
+		self.on_done()
+
+	def on_done(self):
+		try:
+			self.request.close()
+		except:
+			pass
 		with unix_lock:
-			unix_clients.add(self.request)
+			try:
+				unix_clients.remove(self.request)
+			except:
+				pass
 		print 'unix disconnected'
 
 class ThreadedUnixStreamServer(SocketServer.ThreadingMixIn, SocketServer.UnixStreamServer):
