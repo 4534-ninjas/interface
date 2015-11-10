@@ -12,9 +12,11 @@
 void *
 do_foobar(void *x __attribute__((__unused__)))
 {
-	int a = 12;
-	int b = 34;
+	int a = 1000;
+	int b = 500;
 	for (;;) {
+		a += random() % 10 - 5;
+		b += random() % 10 - 5;
 		debug("thing at (%d,%d)", a, b);
 		sleep(1);
 	}
