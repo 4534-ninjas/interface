@@ -13,6 +13,7 @@ struct debug_entry {
 
 void debug_dump_all(void);
 int debug_set_enabled(uint32_t, int);
+void debug_set_enabled_all(int);
 
 void __debug(struct debug_entry *, const char *, long, const char *, ...);
 

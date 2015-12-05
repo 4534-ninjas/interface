@@ -225,3 +225,11 @@ debug_set_enabled(uint32_t id, int enabled)
 	}
 	return -1; // Not found.
 }
+
+void
+debug_set_enabled_all(int enabled)
+{
+	struct debug_entry *e;
+	for (e = head; e != NULL; e = e->next)
+		e->enabled = enabled;
+}
