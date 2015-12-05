@@ -99,7 +99,12 @@ debug_dump(struct debug_entry *e)
 	size_t fmt_len = strlen(e->fmt) + 1;
 	size_t sfmt_len = strlen(e->simple_fmt) + 1;
 	size_t buf_len = sizeof(struct vals) + file_len + fmt_len + sfmt_len;
-	char buf[buf_len];
+	char buf[1024];
+	if (buf_len >= sizeof(buf)) {
+		/* XXX wtf - horrible way to handle errors! :( */
+		debug("overflow in dbg dump");
+		return;
+	}
 	struct vals *v = (struct vals *)buf;
 	v->type = 'D'; // `Definition` msg type.
 	v->e = htonl((uint32_t)(intptr_t)e);
@@ -153,7 +158,12 @@ __debug(struct debug_entry *e, const char *file, long line, const char *fmt, ...
 		} __attribute__((__packed__));
 		size_t sfmt_len = strlen(e->simple_fmt) + 1;
 		size_t buf_len = sizeof(struct vals) + sfmt_len + vfmtlen(e->simple_fmt, ap);
-		char buf[buf_len];
+		char buf[1024];
+		if (buf_len >= sizeof(buf)) {
+			/* XXX wtf - horrible way to handle errors! :( */
+			debug("overflow in debug");
+			return;
+		}
 		struct vals *v = (struct vals *)buf;
 		v->type = 'M'; // `Message` msg type.
 		v->e = htonl((uint32_t)(intptr_t)e);
