@@ -33,7 +33,7 @@ struct cmd {
 	{"DBGS", cmd_dbgs, "Enumerate debug tracepoints", NULL},
 	{"DBGT", cmd_dbgt, "Debug test", "Number"},
 	{"DBGE", cmd_dbge, "Debug enable", "Hex Debug ID (leave out for all)"},
-	{"DBGD", cmd_dbgt, "Debug disable", "Hex Debug ID (leave out for all)"},
+	{"DBGD", cmd_dbgd, "Debug disable", "Hex Debug ID (leave out for all)"},
 };
 
 void
