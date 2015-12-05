@@ -1,7 +1,9 @@
-#include <assert.h> // remove
+#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
+#include <pthread.h>
 
 #include "because_unix.h"
 #include "debug.h"
@@ -13,6 +15,10 @@ void cmd_ping(const char *);
 void cmd_f(const char *);
 void cmd_b(const char *);
 void cmd_cmds(const char *);
+void cmd_dbgs(const char *);
+void cmd_dbgt(const char *);
+void cmd_dbge(const char *);
+void cmd_dbgd(const char *);
 
 struct cmd {
 	char *op;
@@ -20,10 +26,14 @@ struct cmd {
 	char *descr;
 	char *arg_descr; /* or NULL, when no arg expected */
 } cmds[] = {
-	{"CMDS", cmd_cmds, "Enumerate available commands", NULL},
 	{"PING", cmd_ping, "Initiate connection heartbeat", NULL},
 	{"F", cmd_f, "Move forward", "Milimeters to move"},
 	{"B", cmd_b, "Move backward", "Milimeters to move"},
+	{"CMDS", cmd_cmds, "Enumerate available commands", NULL},
+	{"DBGS", cmd_dbgs, "Enumerate debug tracepoints", NULL},
+	{"DBGT", cmd_dbgt, "Debug test", "Number"},
+	{"DBGE", cmd_dbge, "Debug enable", "Hex Debug ID (leave out for all)"},
+	{"DBGD", cmd_dbgt, "Debug disable", "Hex Debug ID (leave out for all)"},
 };
 
 void
@@ -57,6 +67,61 @@ cmd_cmds(const char *s)
 		    cmds[i].arg_descr ?: "");
 		send_pkt_str(buf);
 	}
+}
+
+void
+cmd_dbgs(const char *s)
+{
+	debug_dump_all();
+}
+
+
+void
+cmd_dbgt(const char *s)
+{
+	debug("test: %d", atoi(s));
+}
+
+uint32_t
+str_to_addr(const char *s)
+{
+	// ignore error handling for now, we handle it a higher layer anyway
+	uint32_t x = 0;
+	const char *p;
+	char c;
+	for (p = s; (c = *p) != '\0'; p++) {
+		x <<= 4;
+		if (c >= '0' && c <= '9')
+			x += c - '0';
+		if (c >= 'a' && c <= 'f')
+			x += c - 'a' + 10;
+		if (c >= 'A' && c <= 'F')
+			x += c - 'A' + 10;
+	}
+	return x;
+}
+
+void
+handle_dbg_enable_cmd(const char *s, int enabled)
+{
+	if (*s == '\0') {
+		debug_set_enabled_all(enabled);
+	} else {
+		if (debug_set_enabled(str_to_addr(s), enabled) == -1)
+			send_pkt_str("bad dbg id");
+	}
+}
+
+void
+cmd_dbge(const char *s) // enable
+{
+	handle_dbg_enable_cmd(s, 1);
+}
+
+void
+cmd_dbgd(const char *s) // disable
+{
+	handle_dbg_enable_cmd(s, 0);
 }
 
 void
