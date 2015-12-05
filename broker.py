@@ -30,7 +30,7 @@ unix_lock = threading.Lock()
 class tcp_pkt_iter:
 	def __init__(self, sock):
 		#self.re = re.compile('[^\xff]*(?:\xff})?\xff{([^\xff]*)\xff}(.*)')
-		self.re = re.compile('.*?\xff{([^\xff]*)\xff}(.*)')
+		self.re = re.compile('.*?\xff{([^\xff]*?)\xff}(.*)', re.MULTILINE|re.DOTALL)
 		#self.re = re.compile(r'([^\n]*)\n(.*)')
 		self.sock = sock
 		self.buf = ""
@@ -61,7 +61,7 @@ def tcp_to_unix(msg, sock):
 	if msg[0] == 'M':
 		x['type'] = 'msg'
 		(x['e'], x['n']) = struct.unpack('!ii', msg[1:9])
-		split = re.compile('([^\0]*)\0(.*)')
+		split = re.compile('([^\0]*)\0(.*)', re.MULTILINE|re.DOTALL)
 		m = split.match(msg[9:])
 		x['fmt'] = m.group(1)
 		r = m.group(2)
