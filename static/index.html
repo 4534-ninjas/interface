@@ -50,19 +50,20 @@ xxx=$scope;
 
 	$scope.toggle = function(rover, def) {
 		// XXX make this per-rover
-		console.log(''+def.e+' toggled '+def.enabled);
-		ws.send(JSON.stringify({'type':(def.enabled?'enable':'disable'), 'e':def.e}));
+		console.log(''+def.e+' toggled '+def.enabled+' for '+rover.host+':'+rover.port);
+		ws.send(JSON.stringify({'type':(def.enabled?'enable':'disable'), 'e':def.e, 'rover':{'host':rover.host, 'port':rover.port}}));
 	}
 	$scope.send_cmd = function(rover, op, arg) {
 		console.log(rover.host+':'+rover.port+' '+op+' '+arg);
-		ws.send(JSON.stringify({'type':'cmd', 'op':op, 'arg':arg}));
+		ws.send(JSON.stringify({'type':'cmd', 'op':op, 'arg':arg, 'rover':{'host':rover.host, 'port':rover.port}}));
 	}
 
 	var ws = new WebSocket(window.location.origin.replace('http','ws')+'/rovers');
 	$scope.sock = ws;
 	ws.onopen = function(e) {
 		console.log('connected');
-		ws.send(JSON.stringify({'type':'raw', 'raw':btoa('?')}));
+		ws.send(JSON.stringify({'type':'str', 'msg':'?'}));
+		ws.send(JSON.stringify({'type':'enumerate'}));
 	}
 	ws.onclose = function(e) { console.warn('connection failed'); }
 	ws.onerror = function(e) { console.warn('connection error: '+e.data); }

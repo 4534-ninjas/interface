@@ -113,13 +113,38 @@ def unix_to_tcp(msg, sock):
 		return base64.b64decode(x['msg'])+'\n'
 	elif x['type'] == 'enumerate':
 		return 'DBGS\nCMDS\n'
+	elif x['type'] == 'cmd':
+		try:
+			return x['op']+' '+x['arg']+'\n'
+		except:
+			try:
+				return x['op']+'\n'
+			except:
+				return json.dumps({'type':'error', 'reason':'cmd missing op/arg'})
 	elif x['type'] == 'enable':
-		return 'DBGE %08x\n' % x['e']
+		try:
+			return 'DBGE %08x\n' % x['e']
+		except:
+			return json.dumps({'type':'error', 'reason':'missing debug id'})
 	elif x['type'] == 'disable':
-		return 'DBGD %08x\n' % x['e']
+		try:
+			return 'DBGD %08x\n' % x['e']
+		except:
+			return json.dumps({'type':'error', 'reason':'missing debug id'})
 
 	# XXX better way to handle this?
-	raise ValueError('bad msg format')
+	raise ValueError('bad msg format, type='+str(x['type']))
+
+def dst_rover_from_unix(msg):
+	x = json.loads(msg)
+	try:
+		h = x['rover']['host']
+		p = x['rover']['port']
+		if h is not str or p is not int:
+			return None
+		return (x['rover']['host'], x['rover']['port'])
+	except:
+		return None
 
 def broadcast_tcp(msg):
 	with tcp_lock:
@@ -138,6 +163,12 @@ def broadcast_unix(msg):
 		#	except:
 		#		unix_clients.remove(s)
 		#		s.close()
+
+def rover_lookup(rover):
+	for peer in tcp_clients:
+		if peer[0] == rover[0] and peer[1] == rover[1]:
+			return peer
+	raise IndexError('no such rover')
 
 def rovers_present():
 	with tcp_lock:
@@ -158,6 +189,7 @@ class ThreadedTCPRequestHandler(SocketServer.BaseRequestHandler):
 			tcp_clients.add(self.request)
 		broadcast_rovers_present()
 		for pkt in iter(tcp_pkt_iter(self.request)):
+			print 'got '+pkt
 			broadcast_unix(tcp_to_unix(pkt, self.request))
 		self.on_done()
 
@@ -185,10 +217,26 @@ class ThreadedUnixStreamRequestHandler(SocketServer.BaseRequestHandler):
 		self.request.sendall(rovers_present())
 		for line in iter(self.request.makefile().readline, ''):
 			# XXX maybe catch exceptions here & notify sender?
+			print 'got '+line
 			try:
-				broadcast_tcp(unix_to_tcp(line, self.request))
+				msg = unix_to_tcp(line, self.request)
+				dst_rover = dst_rover_from_unix(line)
+				if dst_rover is None:
+					print 'broadcasting: '+msg
+					broadcast_tcp(msg)
+				else:
+					try:
+						print 'sending '+msg+' to '+dst_rover.host+':'+str(dst_rover.port)
+						with tcp_lock: # XXX WTF HALP
+							rover_lookup(dst_rover).sendall(msg)
+					except IndexError:
+						print 'stale msg for rover at '+dst_rover.host+':'+dst_rover.port
+					except:
+						raise
 			except ValueError:
 				self.request.sendall(json.dumps({'type': 'error', 'reason': 'invalid message'})+'\n')
+			except:
+				raise
 		self.on_done()
 
 	def handle_timeout(self):

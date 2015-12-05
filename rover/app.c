@@ -55,7 +55,7 @@ cmd_b(const char *s)
 }
 
 void
-cmd_cmds(const char *s)
+cmd_dump_all(void)
 {
 	int i;
 	for (i = 0; i < sizeof(cmds) / sizeof(cmds[0]); i++) {
@@ -67,6 +67,12 @@ cmd_cmds(const char *s)
 		    cmds[i].arg_descr ?: "");
 		send_pkt_str(buf);
 	}
+}
+
+void
+cmd_cmds(const char *s)
+{
+	cmd_dump_all();
 }
 
 void
@@ -190,6 +196,9 @@ main()
 	uart_init();
 	setup_uart_interrupt_handler();
 	dummy_init();
+
+	cmd_dump_all();
+	debug_dump_all();
 
 	for (;;) {
 		msg_dispatch();
