@@ -28,6 +28,16 @@ button.killswitch {
 	border: 0px solid red;
 	border-radius: 6px;
 }
+.cmd > * {
+	display: block;
+	overflow: hidden;
+}
+.cmd .descr {
+	font-size: 1.5em;
+}
+.cmd button {
+	float: right;
+}
 	</style>
 	<script>
 var xxx;
@@ -38,10 +48,14 @@ roverApp.controller('SupervisoryCtrl', function ($scope) {
 	};
 xxx=$scope;
 
-	$scope.toggle = function(def) {
+	$scope.toggle = function(rover, def) {
 		// XXX make this per-rover
 		console.log(''+def.e+' toggled '+def.enabled);
 		ws.send(JSON.stringify({'type':(def.enabled?'enable':'disable'), 'e':def.e}));
+	}
+	$scope.send_cmd = function(rover, op, arg) {
+		console.log(rover.host+':'+rover.port+' '+op+' '+arg);
+		ws.send(JSON.stringify({'type':'cmd', 'op':op, 'arg':arg}));
 	}
 
 	var ws = new WebSocket(window.location.origin.replace('http','ws')+'/rovers');
@@ -66,6 +80,7 @@ xxx=$scope;
 							name: 'Rover '+$scope.rover_hiwat,
 							host: r.host,
 							port: r.port,
+							cmds: {},
 							defs: {},
 							msgs: {},
 						};
@@ -88,7 +103,8 @@ xxx=$scope;
 				});
 				break;
 			case 'cmd_def':
-				// XXX handle it
+				var r = $scope.rovers[msg.from[0]+':'+msg.from[1]];
+				r.cmds[msg.op] = msg;
 				console.log(msg);
 				break;
 			case 'msg':
@@ -119,6 +135,15 @@ xxx=$scope;
 	<h1 class="jumbotron">Rover Supervisory Interface</h1>
 	<uib-tabset>
 		<uib-tab ng-repeat="rover in rovers" heading="{{rover.name}} ({{rover.host}}:{{rover.port}})">
+			<h1>Commands</h1>
+			<div ng-repeat="(op, cmd) in rover.cmds" class="cmd panel panel-default">
+				<div class="panel-heading">
+					<span class="descr">{{cmd.descr}}</span>
+					<button class="btn btn-primary" ng-click="send_cmd(rover, op, cmd.argval)"><span class="op">{{op}}</span></button>
+				</div>
+				<label class="panel-body" ng-show="cmd.arg_descr">{{cmd.arg_descr}}: <input ng-model="cmd.argval" /></label>
+			</div>
+
 			<h1>Message types</h1>
 			<table class="table"><thead>
 				<tr>
@@ -136,7 +161,7 @@ xxx=$scope;
 					<td>{{def.fmt}}</td>
 					<td>{{def.sfmt}}</td>
 					<td>{{def.n}}</td>
-					<td><input type="checkbox" ng-model="def.enabled" ng-change="toggle(def)"></input></td>
+					<td><input type="checkbox" ng-model="def.enabled" ng-change="toggle(rover, def)"></input></td>
 				</tr>
 			</tbody></table>
 
