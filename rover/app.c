@@ -151,12 +151,43 @@ msg_dispatch()
 	debug("unknown op");
 }
 
+// thread to create some dummy recurring debug values
+void *
+dummy_loop(void *x)
+{
+	int a = 0;
+	int b = 1000;
+	int c = 500;
+	for (;;) {
+		debug("Internal logic signals: %d, %d, %d",
+			random() & 1, random() & 1, random() & 1);
+
+		a += random() % 3 + 8;
+		a %= 50;
+		debug("Sensor reporting %d (mm)", a);
+
+		b += random() % 10 - 5;
+		c += random() % 10 - 5;
+		debug("Encoders: left=%d right=%d (ticks)", b, c);
+
+		sleep(1);
+	}
+}
+void
+dummy_init(void)
+{
+	srandom(0);
+	pthread_t td;
+	pthread_create(&td, NULL, dummy_loop, NULL);
+}
+
 int
 main()
 {
 	queue_init();
 	uart_init();
 	setup_uart_interrupt_handler();
+	dummy_init();
 
 	for (;;) {
 		msg_dispatch();
