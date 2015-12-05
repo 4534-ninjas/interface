@@ -136,13 +136,12 @@ def unix_to_tcp(msg, sock):
 	raise ValueError('bad msg format, type='+str(x['type']))
 
 def dst_rover_from_unix(msg):
+	print 'extracting from '+msg
 	x = json.loads(msg)
 	try:
-		h = x['rover']['host']
-		p = x['rover']['port']
-		if h is not str or p is not int:
-			return None
-		return (x['rover']['host'], x['rover']['port'])
+		h = str(x['rover']['host'])
+		p = int(x['rover']['port'])
+		return (h, p)
 	except:
 		return None
 
@@ -165,9 +164,10 @@ def broadcast_unix(msg):
 		#		s.close()
 
 def rover_lookup(rover):
-	for peer in tcp_clients:
+	for sock in tcp_clients:
+		peer = sock.getpeername()
 		if peer[0] == rover[0] and peer[1] == rover[1]:
-			return peer
+			return sock
 	raise IndexError('no such rover')
 
 def rovers_present():
@@ -221,12 +221,13 @@ class ThreadedUnixStreamRequestHandler(SocketServer.BaseRequestHandler):
 			try:
 				msg = unix_to_tcp(line, self.request)
 				dst_rover = dst_rover_from_unix(line)
+				print 'dst_rover is '+json.dumps(dst_rover)
 				if dst_rover is None:
 					print 'broadcasting: '+msg
 					broadcast_tcp(msg)
 				else:
 					try:
-						print 'sending '+msg+' to '+dst_rover.host+':'+str(dst_rover.port)
+						print 'sending '+msg+' to '+dst_rover[0]+':'+str(dst_rover[1])
 						with tcp_lock: # XXX WTF HALP
 							rover_lookup(dst_rover).sendall(msg)
 					except IndexError:
