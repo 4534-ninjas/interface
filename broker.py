@@ -85,12 +85,21 @@ def tcp_to_unix(msg, sock):
 		x['args'] = a
 
 	elif msg[0] == 'D':
-		x['type'] = 'def'
+		x['type'] = 'dbg_def'
 		(x['e'], x['n'], x['line'], x['enabled']) = struct.unpack('!iii?', msg[1:14])
 		m = re.match('([^\0]*)\0([^\0]*)\0([^\0]*)\0', msg[14:])
 		x['file'] = m.group(1)
 		x['fmt'] = m.group(2)
 		x['sfmt'] = m.group(3)
+	elif msg[0] == 'C':
+		x['type'] = 'cmd_def'
+		d = msg[1:].split('\n')
+		if len(d) == 2:
+			(x['op'], x['descr']) = d
+		elif len(d) == 3:
+			(x['op'], x['descr'], x['arg_descr']) = d
+		else:
+			return json.dumps({'type':'error', 'reason':'bad op descr fmt', 'raw':base64.b64encode(msg)})
 	else:
 		x['type'] = 'unknown'
 	return json.dumps(x)+'\n'
@@ -98,18 +107,19 @@ def tcp_to_unix(msg, sock):
 def unix_to_tcp(msg, sock):
 	print 'from(unix) %s: %s' % (sock.getpeername(), msg)
 	x = json.loads(msg)
-	if x['type'] == 'raw':
-		p = base64.b64decode(x['raw'])
+	if x['type'] == 'str':
+		return x['msg']+'\n'
+	elif x['type'] == 'b64':
+		return base64.b64decode(x['msg'])+'\n'
 	elif x['type'] == 'enumerate':
-		p = '?'
+		return 'DBGS\nCMDS\n'
 	elif x['type'] == 'enable':
-		p = '+'+struct.pack('!i?', x['e'], True)
+		return 'DBGE %08x\n' % x['e']
 	elif x['type'] == 'disable':
-		p = '-'+struct.pack('!i?', x['e'], False)
-	else:
-		# XXX better way to handle this?
-		raise ValueError('bad msg format')
-	return '\xff{'+p.replace('\\','\\\\').replace('\xff','\\x')+'\xff}'
+		return 'DBGD %08x\n' % x['e']
+
+	# XXX better way to handle this?
+	raise ValueError('bad msg format')
 
 def broadcast_tcp(msg):
 	with tcp_lock:

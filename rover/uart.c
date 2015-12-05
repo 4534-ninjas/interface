@@ -1,4 +1,5 @@
 #include <string.h> /* for memset */
+#include <stdio.h> /* for debugging fprintfs, remove me. */
 
 #include "debug.h"
 #include "queue.h"
@@ -50,6 +51,7 @@ uart_interrupt_handler(void)
 			// would overflow
 			if (p == m.op + sizeof(m.op) - 1) {
 				debug("overflow reading OP from uart: dropping pkt");
+fprintf(stderr, "OP overflow: %s", m.op);
 				state = FAIL;
 				break;
 			}
@@ -69,6 +71,7 @@ uart_interrupt_handler(void)
 			// would overflow
 			if (p == m.arg + sizeof(m.arg) - 1) {
 				debug("overflow reading ARG from uart: dropping pkt");
+fprintf(stderr, "ARG overflow: %s", m.arg);
 				state = FAIL;
 				break;
 			}

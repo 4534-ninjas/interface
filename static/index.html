@@ -69,10 +69,11 @@ xxx=$scope;
 							defs: {},
 							msgs: {},
 						};
+						ws.send(JSON.stringify({'type':'enumerate'}));
 					}
 				});
 				break;
-			case 'def':
+			case 'dbg_def':
 				var r = $scope.rovers[msg.from[0]+':'+msg.from[1]];
 				r.defs[msg.e] = msg;
 				r.defs[msg.e].vals = {};
@@ -85,6 +86,10 @@ xxx=$scope;
 					x.chart.addTimeSeries(x.ts, {strokeStyle:'red', lineWidth:4});
 					r.defs[msg.e].vals[i] = x;
 				});
+				break;
+			case 'cmd_def':
+				// XXX handle it
+				console.log(msg);
 				break;
 			case 'msg':
 				var r = $scope.rovers[msg.from[0]+':'+msg.from[1]];

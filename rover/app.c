@@ -39,7 +39,7 @@ struct cmd {
 void
 cmd_ping(const char *s)
 {
-	send_pkt_str("PONG");
+	send_pkt("P", 1);
 }
 
 void
@@ -60,7 +60,7 @@ cmd_cmds(const char *s)
 	int i;
 	for (i = 0; i < sizeof(cmds) / sizeof(cmds[0]); i++) {
 		char buf[1024];
-		snprintf(buf, sizeof(buf), "%s\n%s%s%s",
+		snprintf(buf, sizeof(buf), "C%s\n%s%s%s",
 		    cmds[i].op,
 		    cmds[i].descr,
 		    cmds[i].arg_descr ? "\n" : "",
@@ -107,8 +107,9 @@ handle_dbg_enable_cmd(const char *s, int enabled)
 	if (*s == '\0') {
 		debug_set_enabled_all(enabled);
 	} else {
-		if (debug_set_enabled(str_to_addr(s), enabled) == -1)
-			send_pkt_str("bad dbg id");
+		uint32_t addr = str_to_addr(s);
+		if (debug_set_enabled(addr, enabled) == -1)
+			debug("bad dbg id: %u", addr);
 	}
 }
 
@@ -143,6 +144,7 @@ msg_dispatch()
 			continue;
 
 		// found op
+fprintf(stderr, "calling %s(%s)\n", cmds[i].op, m.arg);
 		cmds[i].callback(m.arg);
 		break;
 	}
