@@ -28,6 +28,21 @@ button.killswitch {
 	border: 0px solid red;
 	border-radius: 6px;
 }
+.ctm {
+	border-top: 1px solid lightgrey;
+}
+.ctmt * {
+	border-radius: 0px !important;
+}
+.ctmt {
+	font-size: 16px !important;
+}
+.ctm > .tab-content {
+	padding-top: 30px;
+}
+.cmd:first-child {
+	text-align: right;
+}
 .cmd > * {
 	display: block;
 	overflow: hidden;
@@ -140,48 +155,53 @@ xxx=$scope;
 	<h1 class="jumbotron">Rover Supervisory Interface</h1>
 	<uib-tabset>
 		<uib-tab ng-repeat="rover in rovers" heading="{{rover.name}} ({{rover.host}}:{{rover.port}})">
-			<h1>Commands</h1>
-			<div class="cnd panel panel-body">
-				<form ng-submit="raw_cmd(rover, rover.rawval)">Raw commands: <input class="text" ng-model="rover.rawval" /></form>
-			</div>
-			<div ng-repeat="(op, cmd) in rover.cmds" class="cmd panel panel-default">
-				<div class="panel-heading">
-					<span class="descr">{{cmd.descr}}</span>
-					<button class="btn btn-primary" ng-click="send_cmd(rover, op, cmd.argval)"><span class="op">{{op}}</span></button>
-				</div>
-				<label class="panel-body" ng-show="cmd.arg_descr">{{cmd.arg_descr}}: <input ng-model="cmd.argval" /></label>
-			</div>
-
-			<h1>Message types</h1>
-			<table class="table"><thead>
-				<tr>
-					<th>unique ID</th>
-					<th>file:line</th>
-					<th>format string</th>
-					<th>data types</th>
-					<th>message count</th>
-					<th>enabled</th>
-				</tr>
-			</thead><tbody>
-				<tr ng-repeat="(e, def) in rover.defs">
-					<td>{{def.e}}</td>
-					<td>{{def.file}}:{{def.line}}</td>
-					<td>{{def.fmt}}</td>
-					<td>{{def.sfmt}}</td>
-					<td>{{def.n}}</td>
-					<td><input type="checkbox" ng-model="def.enabled" ng-change="toggle(rover, def)"></input></td>
-				</tr>
-			</tbody></table>
-
-			<hr />
-
-			<h1>Message Values</h1>
-			<div ng-repeat="(e, def) in rover.defs">
-				<div ng-show="def.enabled"><!-- can't have ng-repeat & ng-show on same elem? -->
-					<h2>{{def.fmt}}</h1>
-					<canvas ng-repeat="(i, arg) in def.vals" id="{{rover.host}}_{{rover.port}}_{{e}}_{{i}}" width="600" height="100"></canvas>
-				</div>
-			</div>
+			<uib-tabset justified="true" type="pills" class="ctm">
+				<uib-tab heading="Commands" class="ctmt">
+					<div class="cmd panel panel-body">
+						<form ng-submit="raw_cmd(rover, rover.rawval)">Raw command: <input class="text" ng-model="rover.rawval" /></form>
+					</div>
+					<div ng-repeat="(op, cmd) in rover.cmds" class="cmd panel panel-default">
+						<div class="panel-heading">
+							<span class="descr">{{cmd.descr}}</span>
+							<button class="btn btn-primary" ng-click="send_cmd(rover, op, cmd.argval)"><span class="op">{{op}}</span></button>
+						</div>
+						<label class="panel-body" ng-show="cmd.arg_descr">{{cmd.arg_descr}}: <input ng-model="cmd.argval" /></label>
+					</div>
+				</uib-tab>
+				<uib-tab heading="Tests" class="ctmt">
+					Nothing here!
+				</uib-tab>
+				<uib-tab heading="Messages" class="ctmt">
+					<!--<h1>Message Types</h1>-->
+					<table class="table"><thead>
+						<tr>
+							<th>unique ID</th>
+							<th>file:line</th>
+							<th>format string</th>
+							<th>data types</th>
+							<th>message count</th>
+							<th>enabled</th>
+						</tr>
+					</thead><tbody>
+						<tr ng-repeat="(e, def) in rover.defs">
+							<td>{{def.e}}</td>
+							<td>{{def.file}}:{{def.line}}</td>
+							<td>{{def.fmt}}</td>
+							<td>{{def.sfmt}}</td>
+							<td>{{def.n}}</td>
+							<td><input type="checkbox" ng-model="def.enabled" ng-change="toggle(rover, def)"></input></td>
+						</tr>
+					</tbody></table>
+					<hr />
+					<!--<h1>Message Values</h1>-->
+					<div ng-repeat="(e, def) in rover.defs">
+						<div ng-show="def.enabled"><!-- can't have ng-repeat & ng-show on same elem? -->
+							<h2>{{def.fmt}}</h1>
+							<canvas ng-repeat="(i, arg) in def.vals" id="{{rover.host}}_{{rover.port}}_{{e}}_{{i}}" width="600" height="100"></canvas>
+						</div>
+					</div>
+				</uib-tab>
+			</uib-tabset>
 		</uib-tab>
 	</uib-tabset>
 </div>
