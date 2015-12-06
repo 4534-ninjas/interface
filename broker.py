@@ -261,6 +261,11 @@ class ThreadedUnixStreamRequestHandler(SocketServer.BaseRequestHandler):
 class ThreadedUnixStreamServer(SocketServer.ThreadingMixIn, SocketServer.UnixStreamServer):
 	pass
 
+def pingloop():
+	while True:
+		broadcast_tcp('PING')
+		time.sleep(0.75) # we expect a ping every 1s
+
 if __name__ == "__main__":
 	SocketServer.TCPServer.allow_reuse_address = True
 	tcp_server = ThreadedTCPServer(tcp_addr, ThreadedTCPRequestHandler)
@@ -276,6 +281,10 @@ if __name__ == "__main__":
 	unix_server_thread = threading.Thread(target=unix_server.serve_forever)
 	unix_server_thread.daemon = True
 	unix_server_thread.start()
+
+	pinger = threading.Thread(target=pingloop)
+	pinger.daemon = True
+	pinger.start()
 
 	def sigh(a,b):
 		#tcp_server.shutdown()
