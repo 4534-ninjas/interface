@@ -1,3 +1,11 @@
 #!/bin/sh
 
-exec nc -U sock
+pi_mac='b8:27:eb:78:95:4a'
+dnsmasq_leases='/var/lib/misc/dnsmasq.leases'
+
+if [ X"$QUERY_STRING" = Xlocal ]; then
+	exec nc -U sock
+else
+	ip=$(awk 'BEGIN{mac=ARGV[1];ARGV[1]="";}{if ($2 == mac){print $3;exit 0;}}' "$pi_mac" < "$dnsmasq_leases")
+	exec ssh -i ssh_key websocketd@"$ip" nc -U interface/sock
+fi
