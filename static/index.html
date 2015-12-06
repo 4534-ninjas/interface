@@ -203,7 +203,7 @@ xxx=$scope;
 						<!-- XXX: Need to figure out how to use angular ng-repeat vals in ng-foos of same elem. -->
 						<!-- XXX: Also need to figure out controllers. Like seriously... -->
 						<!-- XXX: Really just need to learn angular, haha. -->
-						<div class="panel panel-default test" ng-click="run_test(rover, name)" ng-class="rover.status === 'testing '+name ? 'panel-primary' : info.result === 'success' ? 'panel-success' : info.result === 'fail' ? 'panel-danger' : ''">
+						<div class="panel panel-default test" ng-click="run_test(rover, name)" ng-class="rover.status === 'testing '+name ? 'panel-primary' : info.result === 'success' ? 'panel-success' : info.result === 'fail' ? 'panel-danger' : info.result === 'complete' ? 'panel-warning' : 'panel-info'">
 							<div class="panel-heading test-name">{{name}}</div>
 							<div class="panel-body test-descr">{{info.descr}}</div>
 						</div>
