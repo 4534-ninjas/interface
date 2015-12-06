@@ -57,6 +57,10 @@ xxx=$scope;
 		console.log(rover.host+':'+rover.port+' '+op+(arg === undefined ? '' : ' '+arg));
 		ws.send(JSON.stringify({'type':'cmd', 'op':op, 'arg':arg, 'rover':{'host':rover.host, 'port':rover.port}}));
 	}
+	$scope.raw_cmd = function(rover, str) {
+		var x = str.split(' ');
+		$scope.send_cmd(rover, x[0], x[1]);
+	}
 
 	var ws = new WebSocket(window.location.origin.replace('http','ws')+'/rovers');
 	$scope.sock = ws;
@@ -137,6 +141,9 @@ xxx=$scope;
 	<uib-tabset>
 		<uib-tab ng-repeat="rover in rovers" heading="{{rover.name}} ({{rover.host}}:{{rover.port}})">
 			<h1>Commands</h1>
+			<div class="cnd panel panel-body">
+				<form ng-submit="raw_cmd(rover, rover.rawval)">Raw commands: <input class="text" ng-model="rover.rawval" /></form>
+			</div>
 			<div ng-repeat="(op, cmd) in rover.cmds" class="cmd panel panel-default">
 				<div class="panel-heading">
 					<span class="descr">{{cmd.descr}}</span>
