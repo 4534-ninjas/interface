@@ -102,6 +102,9 @@ def tcp_to_unix(msg, sock):
 			(x['op'], x['descr'], x['arg_descr']) = d
 		else:
 			return json.dumps({'type':'error', 'reason':'bad op descr fmt', 'raw':base64.b64encode(msg)})
+	elif msg[0] == 'B':
+		x['type'] = 'bcast'
+		broadcast_tcp_except(sock, msg[1:])
 	else:
 		x['type'] = 'unknown'
 	return json.dumps(x)+'\n'
@@ -147,14 +150,18 @@ def dst_rover_from_unix(msg):
 	except:
 		return None
 
-def broadcast_tcp(msg):
+def broadcast_tcp_except(sock, msg):
 	with tcp_lock:
 		for s in tcp_clients:
-			try:
-				s.sendall(msg)
-			except:
-				tcp_clients.remove(s)
-				s.close()
+			if s != sock:
+				try:
+					s.sendall(msg)
+				except:
+					tcp_clients.remove(s)
+					s.close()
+
+def broadcast_tcp(msg):
+	broadcast_tcp_except(None, msg)
 
 def broadcast_unix(msg):
 	with unix_lock:
