@@ -47,7 +47,7 @@ button.killswitch {
 	display: block;
 	overflow: hidden;
 }
-.cmd .descr {
+.cmd .descr, .test-name {
 	font-size: 1.5em;
 }
 .cmd button {
@@ -76,6 +76,9 @@ xxx=$scope;
 		var x = str.split(' ');
 		$scope.send_cmd(rover, x[0], x[1]);
 	}
+	$scope.run_test = function(rover, name) {
+		$scope.send_cmd(rover, 'TEST', name);
+	}
 
 	var ws = new WebSocket(window.location.origin.replace('http','ws')+'/rovers');
 	$scope.sock = ws;
@@ -101,6 +104,7 @@ xxx=$scope;
 							host: r.host,
 							port: r.port,
 							cmds: {},
+							tests: {'foo': 'bar baz', 'asdf': 'blah wat'},
 							defs: {},
 							msgs: {},
 						};
@@ -125,6 +129,11 @@ xxx=$scope;
 			case 'cmd_def':
 				var r = $scope.rovers[msg.from[0]+':'+msg.from[1]];
 				r.cmds[msg.op] = msg;
+				console.log(msg);
+				break;
+			case 'test_def':
+				var r = $scope.rovers[msg.from[0]+':'+msg.from[1]];
+				r.tests[msg.name] = msg.descr;
 				console.log(msg);
 				break;
 			case 'msg':
@@ -173,7 +182,13 @@ xxx=$scope;
 					</div>
 				</uib-tab>
 				<uib-tab heading="Tests" class="ctmt">
-					Nothing here!
+					<div ng-repeat="(name, descr) in rover.tests">
+						<!-- XXX: Need to figure out how to use angular ng-repeat vals in ng-foos of same elem. -->
+						<div class="panel panel-default" ng-click="run_test(rover, name)">
+							<div class="panel-heading test-name">{{name}}</div>
+							<div class="panel-body test-descr">{{descr}}</div>
+						</div>
+					</div>
 				</uib-tab>
 				<uib-tab heading="Messages" class="ctmt">
 					<!--<h1>Message Types</h1>-->
