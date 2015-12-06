@@ -77,7 +77,7 @@ xxx=$scope;
 		$scope.send_cmd(rover, x[0], x[1]);
 	}
 	$scope.run_test = function(rover, name) {
-		$scope.send_cmd(rover, 'TEST', name);
+		$scope.send_cmd(rover, 'TSTR', name);
 	}
 
 	var ws = new WebSocket(window.location.origin.replace('http','ws')+'/rovers');
