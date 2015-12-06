@@ -1,5 +1,7 @@
 #!/bin/sh
 
+cd $(dirname $0)
+
 websocketd=/home/jpo/go/bin/websocketd
 PORT=8080
 
