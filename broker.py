@@ -263,7 +263,7 @@ class ThreadedUnixStreamServer(SocketServer.ThreadingMixIn, SocketServer.UnixStr
 
 def pingloop():
 	while True:
-		broadcast_tcp('PING')
+		broadcast_tcp('PING\n')
 		time.sleep(0.75) # we expect a ping every 1s
 
 if __name__ == "__main__":
