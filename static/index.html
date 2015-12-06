@@ -170,8 +170,10 @@ xxx=$scope;
 
 			<h1>Message Values</h1>
 			<div ng-repeat="(e, def) in rover.defs">
-				<h2>{{def.fmt}}</h1>
-				<canvas ng-repeat="(i, arg) in def.vals" id="{{rover.host}}_{{rover.port}}_{{e}}_{{i}}" width="600" height="100"></canvas>
+				<div ng-show="def.enabled"><!-- can't have ng-repeat & ng-show on same elem? -->
+					<h2>{{def.fmt}}</h1>
+					<canvas ng-repeat="(i, arg) in def.vals" id="{{rover.host}}_{{rover.port}}_{{e}}_{{i}}" width="600" height="100"></canvas>
+				</div>
 			</div>
 		</uib-tab>
 	</uib-tabset>
