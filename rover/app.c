@@ -19,6 +19,8 @@ void cmd_dbgs(const char *);
 void cmd_dbgt(const char *);
 void cmd_dbge(const char *);
 void cmd_dbgd(const char *);
+void cmd_tsts(const char *);
+void cmd_tstr(const char *);
 
 struct cmd {
 	char *op;
@@ -34,12 +36,76 @@ struct cmd {
 	{"DBGT", cmd_dbgt, "Debug test", "Number"},
 	{"DBGE", cmd_dbge, "Debug enable", "Hex Debug ID (leave out for all)"},
 	{"DBGD", cmd_dbgd, "Debug disable", "Hex Debug ID (leave out for all)"},
+	{"TSTS", cmd_tsts, "Enumerate tests", NULL},
+	{"TSTR", cmd_tstr, "Run tests", "Test name"},
 };
+
+enum { TEST_SUCCESS, TEST_FAIL, TEST_IDK, N_STATUSES };
+
+int test_success(void)	{ return TEST_SUCCESS; }
+int test_fail(void)	{ return TEST_FAIL; }
+int test_complete(void)	{ return TEST_IDK; }
+int test_rand(void)	{ return random() % N_STATUSES; }
+
+struct test {
+	int (*run)(void);
+	const char *name;
+	const char *descr;
+} tests[] = {
+	{test_success, "yes", "Always passes"},
+	{test_fail, "no", "Always fails"},
+	{test_complete, "maybe", "Just completes"},
+	{test_rand, "random", "Random result"},
+};
+
+void
+cmd_tsts(const char *s)
+{
+	int i;
+	for (i = 0; i < sizeof(tests) / sizeof(tests[0]); i++) {
+		char buf[100];
+		snprintf(buf, sizeof(buf), "T%s\n%s",
+		    tests[i].name, tests[i].descr);
+		send_pkt_str(buf);
+	}
+}
+
+void
+cmd_tstr(const char *s)
+{
+	int i;
+	char buf[100];
+	for (i = 0; i < sizeof(tests) / sizeof(tests[0]); i++) {
+		if (strcasecmp(tests[i].name, s) == 0) {
+			snprintf(buf, sizeof(buf), "Stesting %s", tests[i].name);
+			send_pkt_str(buf);
+			sleep(1);
+			switch (tests[i].run()) {
+			case TEST_SUCCESS:
+				snprintf(buf, sizeof(buf), "R%s %s",
+				    tests[i].name, "success");
+				break;
+
+			case TEST_FAIL:
+				snprintf(buf, sizeof(buf), "R%s %s",
+				    tests[i].name, "fail");
+				break;
+
+			case TEST_IDK:
+				snprintf(buf, sizeof(buf), "R%s %s",
+				    tests[i].name, "complete");
+				break;
+			}
+			send_pkt_str(buf);
+			return;
+		}
+	}
+}
 
 void
 cmd_ping(const char *s)
 {
-	send_pkt("P", 1);
+	send_pkt_str("PONG");
 }
 
 void
@@ -55,7 +121,7 @@ cmd_b(const char *s)
 }
 
 void
-cmd_dump_all(void)
+cmd_cmds(const char *s)
 {
 	int i;
 	for (i = 0; i < sizeof(cmds) / sizeof(cmds[0]); i++) {
@@ -67,12 +133,6 @@ cmd_dump_all(void)
 		    cmds[i].arg_descr ?: "");
 		send_pkt_str(buf);
 	}
-}
-
-void
-cmd_cmds(const char *s)
-{
-	cmd_dump_all();
 }
 
 void
@@ -197,10 +257,14 @@ main()
 	setup_uart_interrupt_handler();
 	dummy_init();
 
-	cmd_dump_all();
-	debug_dump_all();
+	send_pkt_str("Sboot");
+
+	cmd_cmds("");
+	cmd_tsts("");
+	cmd_dbgs("");
 
 	for (;;) {
+		send_pkt_str("SListen");
 		msg_dispatch();
 
 		/*
