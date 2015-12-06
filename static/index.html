@@ -62,6 +62,9 @@ button.killswitch {
 .panel-warning .panel-heading {
 	background-color: #f2bd6e !important;
 }
+s {
+	color: #777;
+}
 	</style>
 	<script>
 var xxx;
@@ -189,7 +192,7 @@ xxx=$scope;
 <body>
 
 <div class="container" ng-controller="SupervisoryCtrl">
-	<h1 class="jumbotron">Rover Supervisory Interface</h1>
+	<h1 class="jumbotron">Rover <s>Command Center</s> Battle Station</h1>
 	<uib-tabset>
 		<uib-tab ng-repeat="rover in rovers" heading="{{rover.name}} ({{rover.host}}:{{rover.port}}) {{rover.status}}">
 			<uib-tabset justified="true" type="pills" class="ctm">
