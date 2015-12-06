@@ -80,6 +80,14 @@ xxx=$scope;
 		$scope.send_cmd(rover, 'TSTR', name);
 	}
 
+	// XXX this is probably a dumb way of doing it
+	function rover_reset(r) {
+		r.cmds = {};
+		r.tests = {};
+		r.defs = {};
+		r.msgs = {};
+	}
+
 	var ws = new WebSocket(window.location.origin.replace('http','ws')+'/rovers');
 	$scope.sock = ws;
 	ws.onopen = function(e) {
@@ -104,11 +112,8 @@ xxx=$scope;
 							status: '',
 							host: r.host,
 							port: r.port,
-							cmds: {},
-							tests: {'foo': {descr:'bar baz'}, 'asdf': {descr:'blah wat'}},
-							defs: {},
-							msgs: {},
 						};
+						rover_reset($scope.rovers[k]);
 						ws.send(JSON.stringify({'type':'enumerate'}));
 					}
 				});
@@ -160,6 +165,8 @@ xxx=$scope;
 			case 'status':
 				var r = $scope.rovers[msg.from[0]+':'+msg.from[1]];
 				r.status = msg.status;
+				if (msg.status === 'boot')
+					rover_reset(r);
 				break;
 			}
 		});
