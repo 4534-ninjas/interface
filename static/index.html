@@ -54,7 +54,7 @@ xxx=$scope;
 		ws.send(JSON.stringify({'type':(def.enabled?'enable':'disable'), 'e':def.e, 'rover':{'host':rover.host, 'port':rover.port}}));
 	}
 	$scope.send_cmd = function(rover, op, arg) {
-		console.log(rover.host+':'+rover.port+' '+op+' '+arg);
+		console.log(rover.host+':'+rover.port+' '+op+(arg === undefined ? '' : ' '+arg));
 		ws.send(JSON.stringify({'type':'cmd', 'op':op, 'arg':arg, 'rover':{'host':rover.host, 'port':rover.port}}));
 	}
 
