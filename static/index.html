@@ -165,7 +165,11 @@ xxx=$scope;
 							<span class="descr">{{cmd.descr}}</span>
 							<button class="btn btn-primary" ng-click="send_cmd(rover, op, cmd.argval)"><span class="op">{{op}}</span></button>
 						</div>
-						<label class="panel-body" ng-show="cmd.arg_descr">{{cmd.arg_descr}}: <input ng-model="cmd.argval" /></label>
+						<form ng-submit="send_cmd(rover, op, cmd.argval)">
+							<label class="panel-body" ng-show="cmd.arg_descr">
+								{{cmd.arg_descr}}: <input ng-model="cmd.argval" />
+							</label>
+						</form>
 					</div>
 				</uib-tab>
 				<uib-tab heading="Tests" class="ctmt">
