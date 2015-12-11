@@ -70,10 +70,38 @@ s {
 var xxx;
 var roverApp = angular.module('roverApp', ['ui.bootstrap']);
 roverApp.controller('SupervisoryCtrl', function ($scope) {
+	xxx=$scope;
+
 	$scope.rover_hiwat = 0;
 	$scope.rovers = {
 	};
-xxx=$scope;
+
+	$scope.dpad = false;
+
+	$scope.down = function(e, rover) {
+		switch (e.keyCode) {
+		case 87: // w
+			$scope.send_cmd(rover, 'F', '100');
+			break;
+		case 65: // a
+			$scope.send_cmd(rover, 'L', '100');
+			break;
+		case 83: // s
+			$scope.send_cmd(rover, 'B', '100');
+			break;
+		case 68: // d
+			$scope.send_cmd(rover, 'R', '100');
+			break;
+		}
+	}
+
+	$scope.up = function(e, rover) {
+		$scope.send_cmd(rover, 'STOP');
+	}
+
+	$scope.blur = function(e, rover) {
+		$scope.send_cmd(rover, 'STOP');
+	}
 
 	$scope.toggle = function(rover, def) {
 		// XXX make this per-rover
@@ -211,6 +239,9 @@ xxx=$scope;
 							</label>
 						</form>
 					</div>
+				</uib-tab>
+				<uib-tab heading="Manual Controls" class="ctmt" ng-show="dpad">
+					<div class="dpad" tabindex="0" ng-keydown="down($event, rover)" ng-keyup="up($event, rover)" ng-blur="blur($event, rover)">WASD</div>
 				</uib-tab>
 				<uib-tab heading="Tests" class="ctmt">
 					<div ng-repeat="(name, info) in rover.tests">
